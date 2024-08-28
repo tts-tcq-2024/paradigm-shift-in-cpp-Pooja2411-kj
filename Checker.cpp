@@ -1,68 +1,41 @@
-include "Checker.h"
+#include <stdio.h>
 #include <assert.h>
-#include <iostream>
-
-Battery::Battery() {
-    parameterErrorMessages = {
-        {BatteryParameter::TEMPERATURE, "Temperature out of range!\n"},
-        {BatteryParameter::SOC, "State of Charge out of range!\n"},
-        {BatteryParameter::CHARGE_RATE, "Charge Rate out of range!\n"}
-    };
-
-    parameterWarningMessages = {
-        {BatteryParameter::TEMPERATURE, "Warning: Temperature approaching limit!\n"},
-        {BatteryParameter::SOC, "Warning: State of Charge approaching limit!\n"},
-        {BatteryParameter::CHARGE_RATE, "Warning: Charge Rate approaching limit!\n"}
-    };
+int temp_check(float temperature) {
+   if (temperature < 0 || temperature > 45) {
+       printf("Temperature is out of range!\n");
+       return 0; 
+   }
+   return 1;
 }
-bool Battery::isWithinLimits(float value, BatteryLimits limits, BatteryParameter parameter) {
-    bool isOutOfRange = value < limits.min || value > limits.max;
-    if (isOutOfRange) {
-        printErrorMessage(parameter);
-    }
-    return !isOutOfRange;
+int soc_check(float soc) {
+   if (soc < 20 || soc > 80) {
+       printf("State of Charge is out of range!\n");
+       return 0; 
+   }
+   return 1;
 }
-bool Battery::isWithinWarningLimits(float value, BatteryWarningLimits limits, BatteryParameter parameter) {
-    bool isOutOfRange = value < limits.min || value > limits.max;
-    if (isOutOfRange) {
-        printWarningMessage(parameter);
-    }
-    return !isOutOfRange;
+int charge_rate_check(float charge_rate) {
+   if (charge_rate > 0.8) {
+       printf("Charge rate is out of range!\n");
+       return 0; 
+   }
+   return 1;
 }
-
-bool Battery::batteryIsOk(float temperature, float soc, float chargeRate) {
-    const BatteryLimits temperatureLimits{0, 45};
-    const BatteryLimits socLimits{20, 80};
-    const BatteryLimits chargeRateLimits{0, 0.8};
-
-    const BatteryWarningLimits temperatureWarningLimits{20+4, 80-4};
-    const BatteryWarningLimits socWarningLimits{20+4, 80-4};
-    const BatteryWarningLimits chargeRateWarningLimits{0+0.04, 0.8-0.04};
-
-    bool isTemperatureOk = checkParameter(temperature, temperatureLimits, temperatureWarningLimits, BatteryParameter::TEMPERATURE);
-    bool isSocOk = checkParameter(soc, socLimits, socWarningLimits, BatteryParameter::SOC);
-    bool isChargeRateOk = checkParameter(chargeRate, chargeRateLimits, chargeRateWarningLimits, BatteryParameter::CHARGE_RATE);
-
-    return isTemperatureOk && isSocOk && isChargeRateOk;
+int battery_is_ok(float temperature, float soc, float charge_rate) {
+   return temp_check(temperature) && soc_check(soc) && charge_rate_check(charge_rate);
 }
-
-bool Battery::checkParameter(float value, BatteryLimits limits, BatteryWarningLimits warningLimits, BatteryParameter parameter) {
-    return isWithinLimits(value, limits, parameter) && isWithinWarningLimits(value, warningLimits, parameter);
-}
-
-void Battery::testBatteryIsOk() {
-    assert(batteryIsOk(25, 70, 0.7) == true);
-    assert(batteryIsOk(50, 85, 0) == false);
-    assert(batteryIsOk(-1, 70, 0.7) == false);
-    assert(batteryIsOk(25, 19, 0.7) == false);
-    assert(batteryIsOk(25, 70, 0.9) == false);
-    //assert(batteryIsOk(25, 75, 0.7) == false); // Warning for SOC
-    //assert(batteryIsOk(25, 70, 0.76) == false); // Warning for Charge Rate
-    //assert(batteryIsOk(24, 70, 0.7) == false); // Warning for Temperature
-}
-
 int main() {
-    Battery battery;
-    battery.testBatteryIsOk();
-    return 0;
+// Temperature < 0, rest optimal
+  assert(!battery_is_ok(-0.1, 70, 0.1));
+  // Temperature > 45, rest optimal
+  assert(!battery_is_ok(45.1, 70, 0.3));
+  // SOC < 20, rest optimal
+  assert(!battery_is_ok(25, 19, 0.4) );
+  // SOC > 80, rest optimal
+  assert(!battery_is_ok(26, 85, 0.5));
+  // Charge Rate > 0.8, rest optimal
+  assert(!battery_is_ok(30, 60, 0.81));
+  // All optimal values
+  assert(battery_is_ok(30, 60, 0.7));
+   return 0;
 }
